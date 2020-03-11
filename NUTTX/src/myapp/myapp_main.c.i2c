@@ -1,0 +1,142 @@
+/****************************************************************************
+ * examples/myapp/myapp_main.c
+ *
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/sensors/lm75.h>
+#include <nuttx/random.h>
+#include <fixedmath.h>
+#include <sys/boardctl.h> //required to initilize the board
+
+
+/****************Constants*********************/
+
+#define SENSOR_PATH "/dev/temp"
+
+/*********************************************************
+ * Public functions
+ * ********************************************************/
+void intHelper(int signo)
+{
+printf("\nsig number: %d", signo);
+
+}
+
+/****************************************************************************
+ * myapp_main
+ ****************************************************************************/
+
+#if defined(BUILD_MODULE)
+int main(int argc, FAR char *argv[])
+#else
+int myapp_main(int argc, char *argv[])
+#endif
+{
+  
+  int fd0,ret;
+  b16_t temp16;
+  ssize_t nbytes;
+  double temp;
+  int  er=0;
+ 
+  //init the board
+  (void)boardctl(BOARDIOC_INIT, 0);
+
+  fd0 = open(SENSOR_PATH, O_RDONLY);
+  if (fd0 < 0)
+    {
+      printf("Unable to open file /dev/temp\n");
+      goto errout;
+  }
+
+  ret = ioctl(fd0, SNIOC_CENTIGRADE, 0);
+  if (ret < 0)
+    {
+      fprintf(stderr, "ERROR: ioctl(SNIOC_CENTIGRADE) failed: %d\n",
+              errno);
+      goto errout;
+    }
+
+  while(1)
+  {
+      //lM75
+      //SCK (PB6) 
+      //SDA (PB7)
+      
+      nbytes = read(fd0, &temp16, sizeof(b16_t));
+
+      if (nbytes < 0)
+        {
+          fprintf(stderr, "ERROR: read(%d) failed: %d\n",
+                  sizeof(b16_t), errno);
+          //goto errout;
+          er=1;
+        }
+
+      if (nbytes != sizeof(b16_t))
+        {
+          fprintf(stderr, "ERROR: Unexpected read size: %Ld vs %d\n",
+                  (long)nbytes, sizeof(b16_t));
+          //goto errout;
+          er=1;
+        }
+      if(er==0){
+       temp = (double)temp16 / 65536.0;
+       printf("%3.2f degrees Celsius\n", temp);
+      usleep(1000000);
+      }
+      er=0;
+      
+  }
+
+ return OK;
+
+
+errout:
+  printf("Terminating");
+  fflush(stderr);
+  return EXIT_FAILURE;
+
+}
+

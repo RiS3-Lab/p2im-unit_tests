@@ -1,0 +1,127 @@
+/****************************************************************************
+ * examples/myapp/myapp_main.c
+ *
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <nuttx/ioexpander/gpio.h>
+
+#include <sys/boardctl.h> //required to initilize the board
+
+
+/****************Constants*********************/
+
+#define SENSOR_PATH "/dev/temp0"
+
+/*********************************************************
+ * Public functions
+ * ********************************************************/
+void intHelper(int signo)
+{
+printf("\nsig number: %d", signo);
+
+}
+
+/****************************************************************************
+ * myapp_main
+ ****************************************************************************/
+
+#if defined(BUILD_MODULE)
+int main(int argc, FAR char *argv[])
+#else
+int myapp_main(int argc, char *argv[])
+#endif
+{
+  
+  int fd0,ret;
+  int16_t temp_F;
+  int16_t temp_C;
+
+  (void)boardctl(BOARDIOC_INIT, 0);
+
+  fd0 = open(SENSOR_PATH, O_RDONLY);
+  if (fd0 < 0)
+    {
+      printf("Unable to open file /dev/temp0\n");
+      goto errout;
+  }
+
+  while(1)
+  {
+      //max6675_read
+      // miso PA7  (Not connected sensor is only input channel)
+      // mosi PA6
+      // clk  PA5
+      // cs   PA4
+      ret = read(fd0, &temp_F, 2);
+      if (ret < 0)
+      {
+        /* The file could not be read, probably some max6675 pin is
+         * not connected to the channel.
+         */
+
+        printf("Disconnected!\n");
+        goto errout;
+      }
+      else
+      {
+        /* Print temperature value of target device */
+              temp_C=(temp_F-32)*5/9;
+              printf("\nTemperature = %dF  %dC\n",temp_F, temp_C);
+             
+      }
+      //usleep(1000000);
+  }
+
+ return OK;
+
+
+errout:
+  printf("Terminating");
+  fflush(stderr);
+  return EXIT_FAILURE;
+
+}
+

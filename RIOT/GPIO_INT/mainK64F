@@ -1,0 +1,54 @@
+/*
+ * Copyright (C) 2014 Freie Universität Berlin
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
+/**
+ * @ingroup     examples
+ * @{
+ *
+ * @file
+ * @brief       Hello World application template, modified for the P2IM project 2018 
+ *
+ * @author      Kaspar Schleiser <kaspar@schleiser.de>
+ * @author      Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
+ * @author      Alejandro Mera <mera.a@husky.neu.edu>
+ * @author      Bo Feng <feng.bo@husky.neu.edu>
+ * 
+ * @}
+ */
+
+#include <stdio.h>
+#include <board.h>
+#include <periph/gpio.h>
+
+void gpioCB(void *arg)
+{
+int *b;
+b= arg;
+b=b;
+gpio_write(LED0_PIN,0);
+
+}
+
+gpio_cb_t callGPIO;
+
+
+int main(void)
+{
+    int a;
+    callGPIO=gpioCB;
+
+    gpio_init (BTN0_PIN,GPIO_IN);
+    gpio_init (LED0_PIN,GPIO_OUT);
+
+    gpio_init_int(BTN0_PIN,GPIO_IN,GPIO_RISING, callGPIO,&a);
+
+
+    while(1){
+ 
+    };
+}

@@ -1,0 +1,30 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_MYAPP
+	tristate "\"Myapp, World!\" example"
+	default n
+	---help---
+		Enable the \"Myapp, World!\" example
+
+if EXAMPLES_MYAPP
+
+config EXAMPLES_MYAPP_PROGNAME
+	string "Program name"
+	default "myapp"
+	depends on BUILD_LOADABLE
+	---help---
+		This is the name of the program that will be use when the NSH ELF
+		program is installed.
+
+config EXAMPLES_MYAPP_PRIORITY
+	int "Myapp task priority"
+	default 100
+
+config EXAMPLES_MYAPP_STACKSIZE
+	int "Myapp stack size"
+	default 2048
+
+endif

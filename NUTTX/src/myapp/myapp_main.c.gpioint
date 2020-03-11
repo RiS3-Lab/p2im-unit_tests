@@ -1,0 +1,235 @@
+/****************************************************************************
+ * examples/myapp/myapp_main.c
+ *
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <nuttx/ioexpander/gpio.h>
+
+#include <sys/boardctl.h> //required to initilize the board
+
+
+/****************Constants*********************/
+
+#define INPUT_PATH "/dev/gpin0"
+#define OUTPUT_PATH "/dev/gpout1"
+#define INPUT_INT_PATH "/dev/gpint2"
+
+
+/*********************************************************
+ * Public functions
+ * ********************************************************/
+void intHelper(int signo)
+{
+printf("\nsig number: %d", signo);
+
+}
+
+/****************************************************************************
+ * myapp_main
+ ****************************************************************************/
+
+#if defined(BUILD_MODULE)
+int main(int argc, FAR char *argv[])
+#else
+int myapp_main(int argc, char *argv[])
+#endif
+{
+  
+  FAR char *in1;
+  FAR char *out1;
+  FAR char *int1;
+  bool inpval=false;
+  bool outvalue=false;
+  int ret, fdin, fdout, fdint;
+  int signo=1;
+  int errcode;
+
+  in1= "/dev/gpin0";
+  out1="/dev/gpout1";
+  int1="/dev/gpint2";
+
+  printf("Myapp running!!\n");
+
+  (void)boardctl(BOARDIOC_INIT, 0);
+
+
+
+
+
+/* Open the input pin driver */
+
+  fdin = open(in1, O_RDONLY);
+  if (fdin < 0)
+    {
+      errcode = errno;
+      printf("ERROR: Failed to open %s: %d\n", in1, errcode);
+      return EXIT_FAILURE;
+    }
+
+  
+
+/* Open the input int pin driver */
+
+  fdint = open(int1, O_RDONLY);
+  if (fdint < 0)
+    {
+      errcode = errno;
+      printf("ERROR: Failed to open %s: %d\n", int1, errcode);
+      return EXIT_FAILURE;
+    }
+
+  /* Open the out pin driver */
+
+  fdout = open(out1, O_RDWR);
+  if (fdout < 0)
+    {
+      errcode = errno;
+      printf("ERROR: Failed to open %s: %d\n", out1, errcode);
+      return EXIT_FAILURE;
+    }
+
+
+ 
+
+ while(1)
+{
+   
+  struct timespec ts;
+  sigset_t set;
+  
+    /* Set up to receive signal */
+
+  ret = ioctl(fdint, GPIOC_REGISTER, (unsigned long)signo);
+  if (ret < 0)
+    {
+      errcode = errno;
+      fprintf(stderr, "ERROR: Failed to setup for signal from %s: %d\n",
+              int1, errcode);
+      close(fdint);
+      return EXIT_FAILURE;
+    }
+
+   /* Wait up to 5 seconds for the signal */
+
+    (void)sigemptyset(&set);
+    (void)sigaddset(&set, signo);
+
+    ts.tv_sec  = 5;
+    ts.tv_nsec = 0;
+    ret = sigtimedwait(&set, NULL, &ts);
+    (void)ioctl(fdint, GPIOC_UNREGISTER, 0);
+  
+    if (ret < 0)
+    {
+      errcode = errno;
+      if (errcode == EAGAIN)
+        {
+          printf("  [Five second timeout with no signal]\n");
+
+           ret= ioctl(fdint, GPIOC_READ, (unsigned long)((uintptr_t)&inpval));
+          if (ret < 0)
+          {
+              errcode = errno;
+              printf("ERROR: Failed to read value from %s: %d\n", int1, errcode);
+              goto errout;
+           }
+
+
+          printf("int1: %u \n", (unsigned int) inpval);
+
+
+          ret= ioctl(fdin, GPIOC_READ, (unsigned long)((uintptr_t)&inpval));
+          if (ret < 0)
+          {
+              errcode = errno;
+              printf("ERROR: Failed to read value from %s: %d\n", in1, errcode);
+              goto errout;
+           }
+
+            printf("in1: %u \n", (unsigned int) inpval);
+
+          //close(fdint);
+          //return EXIT_SUCCESS;
+        }
+      else
+        {
+          fprintf(stderr, "ERROR: Failed to wait signal %d from %s: %d\n",
+                  signo, int1, errcode);
+          close(fdint);
+          goto errout;
+        }
+    }
+    else
+    {
+          intHelper(signo);
+          printf("\nSignal received");
+          outvalue=~outvalue;
+          ret = ioctl(fdout, GPIOC_WRITE, (unsigned long)outvalue);
+          if (ret < 0)
+            {
+                 errcode = errno;
+                 printf("ERROR: Failed to write value %u from %s: %d\n",out1, (unsigned int)outvalue, errcode);
+                 close(fdout);
+                 goto errout;
+
+             }
+          
+      
+    }
+
+
+  
+}
+
+
+
+errout:
+  printf("Terminating");
+  fflush(stderr);
+  return EXIT_FAILURE;
+
+}
+

@@ -1,0 +1,43 @@
+diff --git a/cpu/cortexm_common/periph/pm.c b/cpu/cortexm_common/periph/pm.c
+index d28cffbb7..394875e0a 100644
+--- a/cpu/cortexm_common/periph/pm.c
++++ b/cpu/cortexm_common/periph/pm.c
+@@ -27,7 +27,7 @@
+ #if !defined(MODULE_PM_LAYERED) && !defined(PROVIDES_PM_SET_LOWEST_CORTEXM)
+ void pm_set_lowest(void)
+ {
+-    cortexm_sleep(0);
++//    cortexm_sleep(0);  //patch  required for P2IM  because it does not support sleep modes, we do not want MCU to sleep we want it to run
+ }
+ #endif
+ 
+ 
+diff --git a/cpu/stm32_common/periph/pm.c b/cpu/stm32_common/periph/pm.c
+index a863c687d..d2cf058d6 100644
+--- a/cpu/stm32_common/periph/pm.c
++++ b/cpu/stm32_common/periph/pm.c
+@@ -134,6 +134,6 @@ void pm_set(unsigned mode)
+ 
+ void pm_off(void)
+ {
+-    irq_disable();
+-    pm_set(0);
++    //irq_disable(); //Required for P2IM
++    //pm_set(0);
+ }
+ 
+# This has to be the absolute path to the RIOT base directory:
+RIOTBASE ?= $(CURDIR)/../..
+diff --git a/sys/pm_layered/pm.c b/sys/pm_layered/pm.c
+index 7cc84d968..ede2b51dd 100644
+--- a/sys/pm_layered/pm.c
++++ b/sys/pm_layered/pm.c
+@@ -61,7 +61,7 @@ void pm_set_lowest(void)
+     unsigned state = irq_disable();
+     if (blocker.val_u32 == pm_blocker.val_u32) {
+         DEBUG("pm: setting mode %u\n", mode);
+-        pm_set(mode);
++        //pm_set(mode); //required for P2IM
+     }
+     else {
+         DEBUG("pm: mode block changed\n");

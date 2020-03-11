@@ -1,0 +1,246 @@
+/****************************************************************************
+ * examples/myapp/myapp_main.c
+ *
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/sensors/lm75.h>
+#include <nuttx/random.h>
+#include <fixedmath.h>
+#include <sys/boardctl.h> //required to initilize the board
+#include <nuttx/drivers/pwm.h>
+#include <unistd.h>
+#include <debug.h>
+#include <string.h>
+
+#include <nuttx/drivers/pwm.h>
+
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+/* Configuration ************************************************************/
+/* CONFIG_NSH_BUILTIN_APPS - Build the PWM test as an NSH built-in function.
+ *   Default: Not built!  The example can only be used as an NSH built-in
+ *   application
+ * CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
+ * CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
+ * CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
+ * CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in seconds.
+ *   Used only if the current pulse count is zero (pulse count is only supported
+ *   if CONFIG_PWM_PULSECOUNT is defined). Default: 5 seconds
+ * CONFIG_EXAMPLES_PWM_PULSECOUNT - The initial PWM pulse count.  This option is
+ *   only available if CONFIG_PWM_PULSECOUNT is defined. Default: 0 (i.e., use
+ *   the duration, not the count).
+ */
+
+#ifndef CONFIG_PWM
+#  error "PWM device support is not enabled (CONFIG_PWM)"
+#endif
+
+#ifndef CONFIG_NSH_BUILTIN_APPS
+#  warning "The PWM example only works as an NSH built-in application (CONFIG_NSH_BUILTIN_APPS)"
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_DEVPATH
+#  define CONFIG_EXAMPLES_PWM_DEVPATH "/dev/pwm0"
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_FREQUENCY
+#  define CONFIG_EXAMPLES_PWM_FREQUENCY 100
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_DUTYPCT
+#  define CONFIG_EXAMPLES_PWM_DUTYPCT 50
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_DURATION
+#  define CONFIG_EXAMPLES_PWM_DURATION 5
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_PULSECOUNT
+#  define CONFIG_EXAMPLES_PWM_PULSECOUNT 0
+#endif
+
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+struct pwm_state_s
+{
+  bool      initialized;
+  FAR char *devpath;
+  uint8_t   duty;
+  uint32_t  freq;
+  int       duration;
+};
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+static struct pwm_state_s g_pwmstate;
+
+/**************************
+ * Private functions
+ ******************************************/
+
+static void pwm_devpath(FAR struct pwm_state_s *pwm, FAR const char *devpath)
+{
+  /* Get rid of any old device path */
+
+  if (pwm->devpath)
+    {
+      free(pwm->devpath);
+    }
+
+  /* Then set-up the new device path by copying the string */
+
+  pwm->devpath = strdup(devpath);
+}
+
+static void helper_finish(int ret)
+{
+  printf("finishing example: %d",ret);
+
+}
+
+
+/****************************************************************************
+ * myapp_main
+ ****************************************************************************/
+
+#if defined(BUILD_MODULE)
+int main(int argc, FAR char *argv[])
+#else
+int myapp_main(int argc, char *argv[])
+#endif
+{
+
+
+  struct pwm_info_s info;
+  int fd;
+  int ret;
+
+
+ (void)boardctl(BOARDIOC_INIT, 0);
+
+  /* Initialize the state data */
+  if (!g_pwmstate.initialized)
+    {
+      g_pwmstate.duty        = CONFIG_EXAMPLES_PWM_DUTYPCT;
+      g_pwmstate.freq        = CONFIG_EXAMPLES_PWM_FREQUENCY;
+      g_pwmstate.duration    = CONFIG_EXAMPLES_PWM_DURATION;
+      g_pwmstate.initialized = true;
+    }
+
+ 
+  /* Has a device been assigned? */
+
+  if (!g_pwmstate.devpath)
+    {
+      /* No.. use the default device */
+      pwm_devpath(&g_pwmstate, CONFIG_EXAMPLES_PWM_DEVPATH);
+    }
+
+  /* Open the PWM device for reading */
+
+  fd = open(g_pwmstate.devpath, O_RDONLY);
+  if (fd < 0)
+    {
+      printf("pwm_main: open %s failed: %d\n", g_pwmstate.devpath, errno);
+      goto errout;
+    }
+
+  /* Configure the characteristics of the pulse train */
+
+  info.frequency = g_pwmstate.freq;
+
+  info.duty      = ((uint32_t)g_pwmstate.duty << 16) / 100;
+  printf("pwm_main: starting output with frequency: %u duty: %08x\n",
+         info.frequency, info.duty);
+
+  ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)((uintptr_t)&info));
+  if (ret < 0)
+    {
+      printf("pwm_main: ioctl(PWMIOC_SETCHARACTERISTICS) failed: %d\n", errno);
+      goto errout_with_dev;
+    }
+
+  /* Then start the pulse train.  Since the driver was opened in blocking
+   * mode, this call will block if the count value is greater than zero.
+   */
+
+  ret = ioctl(fd, PWMIOC_START, 0);
+  if (ret < 0)
+    {
+      printf("pwm_main: ioctl(PWMIOC_START) failed: %d\n", errno);
+      goto errout_with_dev;
+    }
+
+  /* Wait for the specified duration */
+ // sleep(g_pwmstate.duration);
+      /* Then stop the pulse train */
+
+  printf("pwm_main: stopping output\n");
+
+  ret = ioctl(fd, PWMIOC_STOP, 0);
+  if (ret < 0)
+  {
+    printf("pwm_main: ioctl(PWMIOC_STOP) failed: %d\n", errno);
+    goto errout_with_dev;
+  }
+  
+  helper_finish(ret);
+
+
+  close(fd);
+  fflush(stdout);
+  return OK;
+
+errout_with_dev:
+  close(fd);
+errout:
+  fflush(stdout);
+  return ERROR;
+}

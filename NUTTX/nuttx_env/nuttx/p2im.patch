@@ -1,0 +1,12 @@
+diff --git a/configs/stm32f103-minimum/src/stm32_gpio.c b/configs/stm32f103-minimum/src/stm32_gpio.c
+index 84f23dccd9..ad564f5d91 100644
+--- a/configs/stm32f103-minimum/src/stm32_gpio.c
++++ b/configs/stm32f103-minimum/src/stm32_gpio.c
+@@ -159,7 +159,7 @@ static int stm32gpio_interrupt(int irq, void *context, void *arg)
+   DEBUGASSERT(stm32gpint != NULL && stm32gpint->callback != NULL);
+   gpioinfo("Interrupt! callback=%p\n", stm32gpint->callback);
+ 
+-  stm32gpint->callback(&stm32gpint->stm32gpio.gpio);
++  stm32gpint->callback(&stm32gpint->stm32gpio.gpio, stm32gpint->stm32gpio.id); // This is a bug in code nuttx, which we fixed for P2IM testing
+   return OK;
+ }

@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: kconfig-parser
+Description: kconfig-parser library
+Requires:
+Version: 4.11.0
+Libs: -L${libdir} -lkconfig-parser
+Cflags: -I${includedir}

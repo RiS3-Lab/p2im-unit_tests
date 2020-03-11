@@ -1,0 +1,15 @@
+# we use shared STM32 configuration snippets
+INCLUDES += -I$(RIOTBOARD)/common/stm32/include
+
+# set default port depending on operating system
+PORT_LINUX ?= /dev/ttyUSB0
+PORT_DARWIN ?= $(firstword $(sort $(wildcard /dev/tty.SLAB_USBtoUART*)))
+
+# setup serial terminal
+include $(RIOTMAKE)/tools/serial.inc.mk
+
+DEBUG_ADAPTER ?= stlink
+STLINK_VERSION ?= 2
+
+# this board uses openocd
+include $(RIOTMAKE)/tools/openocd.inc.mk

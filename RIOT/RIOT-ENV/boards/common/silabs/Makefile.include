@@ -1,0 +1,2 @@
+INCLUDES += -I$(RIOTBOARD)/common/silabs/include
+INCLUDES += -I$(RIOTBOARD)/common/silabs/drivers/include
