@@ -11,6 +11,22 @@ For example, `Arduino/ADC/` directory has
 * Test results (.csv file). Test results include all registers that are accessed by the unit test firmware, their category in ground truth (`Reg cat` column) and their category assigned by P2IM (`Model Cat` column). Note that when calculating register categorization accuracy in P2IM paper, only registers that have been read by the firmware are considered. This is because registers that are never read by the firmware do not influence firmware execution in P2IM at all. It does not matter whether those registers are correctly categorized or not.
 
 
+## How to instantiate model for the firmware and calculate statistics
+We take Arduino ADC peripheral on SAM3 MCU as an example.
+```bash
+# modify the mi_path, qemu_path, objdump_path, model_stat_path, gt_path in <repo_path>/run.py
+
+# cd to the directory where firmware is located
+cd Arduino/ADC
+
+# run.py instantiates processor-peripheral interface model, and calculates statistics
+../../run.py sam3 SAM3X8EArduinoADC.elf # ../../run.py shows usage of the script
+
+# peripheral_model-sam3.json is the peripheral model instantiated
+# statistics are printed to stdout and sam3.csv
+```
+
+
 ## OS-specific README
 Some steps, such as firmware compilation, are OS specific.
 Therefore, we have OS-specific README for [Arduino](Arduino/README.md), [RIOT](RIOT/README.md), and [Nuttx](NUTTX/README.md).
