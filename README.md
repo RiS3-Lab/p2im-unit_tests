@@ -31,6 +31,12 @@ cd Arduino/ADC
 Some steps, such as firmware compilation, are OS specific.
 Therefore, we have OS-specific README for [Arduino](Arduino/README.md), [RIOT](RIOT/README.md), and [Nuttx](NUTTX/README.md).
 
+Note that you need GNU Arm Embedded Toolchain to compile the firmware.
+Steps to set up the toolchain:
+1. Download the toolchain from [here](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads).
+2. Untar the downloaded file by `tar xjf *.tar.bz2`.
+3. Add `bin/` directory extracted into your `$PATH` environment variable.
+4. Test if the toolchain is added to `$PATH` successfully by `which arm-none-eabi-gcc`.
 
 
 ## Citing our [paper](https://www.usenix.org/conference/usenixsecurity20/presentation/feng)

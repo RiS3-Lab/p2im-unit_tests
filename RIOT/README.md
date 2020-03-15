@@ -19,11 +19,6 @@ Although we provide the **firmware binary**, you can still compile the firmware 
 
 
 ## How to compile firmware
-### Download compiler
-Download `arm-none-eabi-gcc` compiler from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads.
-
-Untar the downloaded file by `tar -xvjf *.tar.bz2` and add `bin/` you get into `PATH` environment variable.
-
 ### Compile firmware
 1) Change directory to the specific peripheral.
 
