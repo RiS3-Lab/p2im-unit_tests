@@ -50,9 +50,3 @@ url = {https://www.usenix.org/conference/usenixsecurity20/presentation/feng},
 }
 ```
 
-
-## TODO
-In the near future, we are going to: 
-* Release source code of Arduino core
-* Explain how to build Arduino test cases
-* Fix/explain GPIO and GPIO_INT require source code (pin usage) changes for different MCUs.
