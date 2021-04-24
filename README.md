@@ -39,6 +39,16 @@ Steps to set up the toolchain:
 4. Test if the toolchain is added to `$PATH` successfully by `which arm-none-eabi-gcc`.
 
 
+## Errata
+credit: Marius Muench (m.muench@vu.nl), Wei Zhou (zhouw@nipc.org.cn), and Tobias Scharnowski (tobias.scharnowski@ruhr-uni-bochum.de)
+
+This test suite includes 66 valid unit tests, instead of 70 (the number we reported in p2im paper).
+This is because we found 4 more test cases not supported by the OS for some MCU, which are:
+- NUTTX/I2C/NUTTX-F103-I2C.elf. Write function is not implemented by the OS.
+- NUTTX/SPI/F103-NUTTX-SPI.elf. Write function is not implemented by the OS.
+- Arduino/I2C/F103-RIOT-I2C.elf. "I2C_ADDR10" flag is not supported by Arduino on F103 (2 test cases for read and write respectively)
+
+
 ## Citing our [paper](https://www.usenix.org/conference/usenixsecurity20/presentation/feng)
 ```
 @inproceedings {p2im,
