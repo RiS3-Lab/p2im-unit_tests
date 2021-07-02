@@ -2,6 +2,9 @@ This is the git repo for unit tests of [P<sup>2</sup>IM paper](https://www.useni
 
 For each unit test case, we include its source code, binary (ELF), and the processor-peripheral model instantiated by P2IM.
 
+Disclaimer: only the following OS+MCU combinations are tested: (Arduino, STM32 F103RB), (Arduino, Atmel SAM3X8E), (NUTTX, STM32 F103RB), (RIOT, STM32 F103RB), (RIOT, Atmel SAM3X8E), (RIOT, NXP MK64FN1M0VLL12). 
+There is no guarantee the test cases will function correctly on other OS+MCU combinations.
+
 
 ## How is the git repo organized
 Unit test cases are organized by OS and peripherals. 
@@ -27,7 +30,7 @@ cd Arduino/ADC
 ```
 
 
-## OS-specific README
+## OS and test case specific README
 Some steps, such as firmware compilation, are OS specific.
 Therefore, we have OS-specific README for [Arduino](Arduino/README.md), [RIOT](RIOT/README.md), and [Nuttx](NUTTX/README.md).
 
@@ -37,6 +40,8 @@ Steps to set up the toolchain:
 2. Untar the downloaded file by `tar xjf *.tar.bz2`.
 3. Add `bin/` directory extracted into your `$PATH` environment variable.
 4. Test if the toolchain is added to `$PATH` successfully by `which arm-none-eabi-gcc`.
+
+Besides, there are test case specific README, such as [RIOT/TIMER/README.md](RIOT/TIMER/README.md). Please don't forget to check them out.
 
 
 ## Errata
